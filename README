@@ -1,0 +1,29 @@
+** Accord project **
+
+* Overview
+----------
+- Accord is a coordination service(like ZooKeeper). It features :
+
+1. Accord focuses on write-intensive workloads unlike ZooKeeper. ZooKeeper forwards all write requests to a master server. It can be bottleneck in write-intensive workloads. The below benchmark demonstrates that the write-operation throughput of Accord is much higher than one of ZooKeeper (up to 20 times better throughput at persistent mode, and up to 18 times better throughput at in-memory mode).
+2. More flexible transaction support. Not only write, del operations, but also cmp, copy, read operations are supported in transaction operations.
+3. In-memory mode and persistent mode support.
+4. Message size is unbounded, and partial update is supported.
+
+
+* Project Page
+----------
+- Getting started / Performance benchmark is avalable from our project page. Please visit http://www.osrg.net/accord
+
+* Directory structure
+----------
+- conductor	: Server-side daemon
+- libacrd 	: Client-side library
+- test		: Test and benchmark programs. Files in this directory are useful as sample programs of Accord.
+- include	: Header files
+- lib	 	: Utility library
+
+* API Documentation
+----------
+- Please see include/accord.h or http://www.osrg.net/accord/api.txt
+- Programs in ACRD_ROOT/test are very useful to understand how to use accord API.
+

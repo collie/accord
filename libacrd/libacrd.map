@@ -1,0 +1,33 @@
+{
+	global:
+		acrd_init;
+		acrd_close;
+		acrd_write;
+		acrd_read;
+		acrd_del;
+		acrd_list;
+		acrd_copy;
+		acrd_aio_setup;
+		acrd_aio_release;
+		acrd_aio_wait;
+		acrd_aio_flush;
+		acrd_aio_write;
+		acrd_aio_read;
+		acrd_aio_del;
+		acrd_aio_list;
+		acrd_aio_copy;
+		acrd_tx_init;
+		acrd_tx_close;
+		acrd_tx_write;
+		acrd_tx_read;
+		acrd_tx_del;
+		acrd_tx_cmp;
+		acrd_tx_scmp;
+		acrd_tx_copy;
+		acrd_tx_commit;
+		acrd_tx_aio_commit;
+		acrd_add_watch;
+		acrd_rm_watch;
+	local:
+		*;
+};
