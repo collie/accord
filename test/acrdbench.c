@@ -75,7 +75,7 @@ static char *size_to_str(uint64_t _size, char *str, int str_size)
 }
 
 
-static void bdrbench_aio_cb(struct acrd_handle *h, struct acrd_aiocb *acb, void *arg)
+static void acrdbench_aio_cb(struct acrd_handle *h, struct acrd_aiocb *acb, void *arg)
 {
 	int n_handled;
 
@@ -107,7 +107,7 @@ static int launch_request(struct request_info *ri)
 	for (i = 0; i < n_requests; i++) {
 		sprintf(url + prefix_len, "%d", __sync_add_and_fetch(&total_n_launched, 1));
 
-		acb = acrd_aio_setup(ri->bh, bdrbench_aio_cb, NULL);
+		acb = acrd_aio_setup(ri->bh, acrdbench_aio_cb, NULL);
 	again:
 		ret = acrd_aio_write(ri->bh, url, buf, msg_size, 0, ACRD_FLAG_CREATE | sync_mode, acb);
 		if (ret != ACRD_SUCCESS) {
@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
 	char s1[64], s2[64];
 
 	if (argc < 6) {
-		printf("usage: bdrbench [host] [n_threads] [n_reqs] "
+		printf("usage: acrdbench [host] [n_threads] [n_reqs] "
 			"[msg_size] [sync_mode]\n");
 		return 1;
 	}

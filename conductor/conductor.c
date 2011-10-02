@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
 		exit(1);
 
 	strncpy(logfile, dir, sizeof(logfile));
-	strncat(logfile, "/bdr.log", sizeof(logfile) - strlen(logfile) - 1);
+	strncat(logfile, "/acrd.log", sizeof(logfile) - strlen(logfile) - 1);
 	if (log_init(program_name, LOG_SPACE_SIZE, is_daemon, is_debug, logfile))
 		exit(1);
 
