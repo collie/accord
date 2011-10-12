@@ -3,17 +3,17 @@ CFLAGS += -D_GNU_SOURCE -DNDEBUG
 LIBS += -lpthread -ldb -lcpg
 
 PROGRAMS = conductor
-BADGER_OBJS = store.o conductor.o acrdnet.o acrdops.o logger.o \
+ACCORD_OBJS = store.o conductor.o acrdnet.o acrdops.o logger.o \
 	../lib/event.o ../lib/net.o ../lib/work.o ../lib/coroutine.o
-BADGER_DEP = $(BADGER_OBJS:.o=.d)
+ACCORD_DEP = $(ACCORD_OBJS:.o=.d)
 
 .PHONY:all
 all: $(PROGRAMS)
 
-conductor: $(BADGER_OBJS)
+conductor: $(ACCORD_OBJS)
 	$(CC) $^ -o $@ $(LIBS)
 
--include $(BADGER_DEP)
+-include $(ACCORD_DEP)
 
 %.o: %.c
 	$(CC) -c $(CFLAGS) $*.c -o $*.o
