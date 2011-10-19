@@ -120,7 +120,7 @@ static void set_request_info(struct acrd_req *req, int opcode, uint32_t flags)
 	req->flags = flags;
 }
 
-static struct request *req_new(struct acrd_handle *bh, enum OPERATION op,
+static struct request *req_new(struct acrd_handle *ah, enum OPERATION op,
 			       uint32_t flags, acrd_recv_cb_t recv_cb, void *arg)
 {
 	struct request *req;
@@ -135,7 +135,7 @@ static struct request *req_new(struct acrd_handle *bh, enum OPERATION op,
 
 	set_request_info(req->rq, op, flags);
 
-	req->handle = bh;
+	req->handle = ah;
 	req->recv_cb = recv_cb;
 	req->arg = arg;
 
@@ -221,15 +221,15 @@ static struct request *find_req(struct list_head *outstanding_reqs, uint32_t id)
 	return req;
 }
 
-static int acrd_aio_completion(struct acrd_handle *bh, struct acrd_rsp *rsp)
+static int acrd_aio_completion(struct acrd_handle *ah, struct acrd_rsp *rsp)
 {
 	int ret = 0;
 	struct request *req;
 	struct acrd_aiocb *acb;
 
-	req = find_req(&bh->nosync_reqs, rsp->id);
+	req = find_req(&ah->nosync_reqs, rsp->id);
 	if (!req)
-		req = find_req(&bh->sync_reqs, rsp->id);
+		req = find_req(&ah->sync_reqs, rsp->id);
 
 	if (unlikely(!req)) {
 		eprintf("internal error\n");
@@ -237,22 +237,22 @@ static int acrd_aio_completion(struct acrd_handle *bh, struct acrd_rsp *rsp)
 	}
 
 	if (req->recv_cb)
-		req->recv_cb(bh, rsp, req->arg);
+		req->recv_cb(ah, rsp, req->arg);
 
 	acb = req->aiocb;
 	acb->result = rsp->result;
 	if (acb->cb)
-		acb->cb(bh, acb, acb->arg);
+		acb->cb(ah, acb, acb->arg);
 
-	pthread_mutex_lock(&bh->sync_lock);
+	pthread_mutex_lock(&ah->sync_lock);
 	acb->done = 1;
-	__sync_sub_and_fetch(&bh->nr_outstanding_reqs, 1);
+	__sync_sub_and_fetch(&ah->nr_outstanding_reqs, 1);
 	list_del(&req->siblings);
-	pthread_mutex_unlock(&bh->sync_lock);
+	pthread_mutex_unlock(&ah->sync_lock);
 
-	pthread_cond_broadcast(&bh->sync_cond);
+	pthread_cond_broadcast(&ah->sync_cond);
 
-	__sync_sub_and_fetch(&bh->allocated_data_size, req->rq->data_length);
+	__sync_sub_and_fetch(&ah->allocated_data_size, req->rq->data_length);
 
 	free(req->rq);
 	free(req);
@@ -260,7 +260,7 @@ static int acrd_aio_completion(struct acrd_handle *bh, struct acrd_rsp *rsp)
 	return ret;
 }
 
-static int acrd_ntfy_completion(struct acrd_handle *bh, struct acrd_ntfy *ntfy)
+static int acrd_ntfy_completion(struct acrd_handle *ah, struct acrd_ntfy *ntfy)
 {
 	struct acrd_watch_info *wi;
 	const struct acrd_arg *id_arg, *list_arg;
@@ -282,17 +282,17 @@ static int acrd_ntfy_completion(struct acrd_handle *bh, struct acrd_ntfy *ntfy)
 
 	switch (ntfy->events) {
 	case ACRD_EVENT_JOINED:
-		if (bh->join_fn)
-			bh->join_fn(bh, (uint64_t *)list_arg->data, nr_ids,
-				    nodeid, bh->ctx);
+		if (ah->join_fn)
+			ah->join_fn(ah, (uint64_t *)list_arg->data, nr_ids,
+				    nodeid, ah->ctx);
 		break;
 	case ACRD_EVENT_LEFT:
-		if (bh->leave_fn)
-			bh->leave_fn(bh, (uint64_t *)list_arg->data, nr_ids,
-				     nodeid, bh->ctx);
+		if (ah->leave_fn)
+			ah->leave_fn(ah, (uint64_t *)list_arg->data, nr_ids,
+				     nodeid, ah->ctx);
 		break;
 	default:
-		list_for_each_entry(wi, &bh->watch_list, list) {
+		list_for_each_entry(wi, &ah->watch_list, list) {
 			if (wi->id == ntfy->id)  {
 				wi->path = path_arg->data;
 				wi->events = ntfy->events;
@@ -318,25 +318,25 @@ static int acrd_ntfy_completion(struct acrd_handle *bh, struct acrd_ntfy *ntfy)
 
 static void __acrd_recv(void *opaque)
 {
-	struct acrd_handle *bh = opaque;
+	struct acrd_handle *ah = opaque;
 	struct acrd_common_hdr hdr, *msg;
 	int ret;
 again:
-	do_co_read(&bh->recv_buf, &hdr, sizeof(hdr));
+	do_co_read(&ah->recv_buf, &hdr, sizeof(hdr));
 
 	msg = zalloc(sizeof(hdr) + hdr.data_length);
 	memcpy(msg, &hdr, sizeof(hdr));
 
-	do_co_read(&bh->recv_buf, msg->data, msg->data_length);
+	do_co_read(&ah->recv_buf, msg->data, msg->data_length);
 
 	switch (msg->type) {
 	case ACRD_MSG_RESPONSE:
-		ret = acrd_aio_completion(bh, (struct acrd_rsp *)msg);
+		ret = acrd_aio_completion(ah, (struct acrd_rsp *)msg);
 		if (unlikely(ret != 0))
 			eprintf("error\n");
 		break;
 	case ACRD_MSG_NOTIFICATION:
-		ret = acrd_ntfy_completion(bh, (struct acrd_ntfy *)msg);
+		ret = acrd_ntfy_completion(ah, (struct acrd_ntfy *)msg);
 		if (unlikely(ret != 0))
 			eprintf("error\n");
 		break;
@@ -352,8 +352,8 @@ again:
 
 static void *acrd_recv(void *arg)
 {
-	struct acrd_handle *bh = arg;
-	int fd = bh->fd;
+	struct acrd_handle *ah = arg;
+	int fd = ah->fd;
 	int ret;
 	struct coroutine *co;
 	char buf[1024 * 1024];
@@ -380,11 +380,11 @@ static void *acrd_recv(void *arg)
 			continue;
 		}
 
-		bh->recv_buf.offset = 0;
-		bh->recv_buf.len = ret;
-		bh->recv_buf.buf = buf;
+		ah->recv_buf.offset = 0;
+		ah->recv_buf.len = ret;
+		ah->recv_buf.buf = buf;
 
-		coroutine_enter(co, bh);
+		coroutine_enter(co, ah);
 	}
 
 	pthread_exit(NULL);
@@ -450,19 +450,19 @@ struct acrd_handle *acrd_init(const char *hostname, int port,
 	return handle;
 }
 
-int acrd_close(struct acrd_handle *bh)
+int acrd_close(struct acrd_handle *ah)
 {
 	int ret = 0;
 
-	acrd_aio_flush(bh);
+	acrd_aio_flush(ah);
 
-	pthread_cancel(bh->recv_thread);
-	pthread_join(bh->recv_thread, NULL);
+	pthread_cancel(ah->recv_thread);
+	pthread_join(ah->recv_thread, NULL);
 
-	exit_work_queue(bh->send_queue);
+	exit_work_queue(ah->send_queue);
 
-	ret = close(bh->fd);
-	free(bh);
+	ret = close(ah->fd);
+	free(ah);
 
 	return ret;
 }
@@ -482,7 +482,7 @@ static void acrd_tx_cb(struct acrd_handle *h, struct acrd_rsp *rsp,
 	}
 }
 
-struct acrd_tx *acrd_tx_init(struct acrd_handle *bh)
+struct acrd_tx *acrd_tx_init(struct acrd_handle *ah)
 {
 	struct acrd_tx *tx;
 
@@ -490,8 +490,8 @@ struct acrd_tx *acrd_tx_init(struct acrd_handle *bh)
 	if (!tx)
 		return NULL;
 
-	tx->handle = bh;
-	tx->req = req_new(bh, ACRD_OP_TX, 0, acrd_tx_cb, tx);
+	tx->handle = ah;
+	tx->req = req_new(ah, ACRD_OP_TX, 0, acrd_tx_cb, tx);
 
 	return tx;
 }
@@ -502,7 +502,7 @@ void acrd_tx_close(struct acrd_tx * tx)
 	free(tx);
 }
 
-static int acrd_op(struct acrd_handle *bh, struct acrd_tx *tx, enum OPERATION op,
+static int acrd_op(struct acrd_handle *ah, struct acrd_tx *tx, enum OPERATION op,
 		  const void *data1, size_t data1_len, const void *data2,
 		  size_t data2_len, uint32_t size, uint64_t offset, uint32_t flags,
 		  acrd_recv_cb_t recv_cb, void *arg, struct acrd_aiocb *aiocb)
@@ -511,13 +511,13 @@ static int acrd_op(struct acrd_handle *bh, struct acrd_tx *tx, enum OPERATION op
 	int need_sync = !aiocb;
 	int ret = ACRD_SUCCESS;
 
-	if (bh->nr_outstanding_reqs > MAX_REQESUTS)
+	if (ah->nr_outstanding_reqs > MAX_REQESUTS)
 		return ACRD_ERR_AGAIN;
 
-	if (bh->allocated_data_size > MAX_ALLOC_SIZE)
+	if (ah->allocated_data_size > MAX_ALLOC_SIZE)
 		return ACRD_ERR_AGAIN;
 
-	req = req_new(bh, op, flags, recv_cb, arg);
+	req = req_new(ah, op, flags, recv_cb, arg);
 	if (req == NULL) {
 		eprintf("oom\n");
 		return ACRD_ERR_AGAIN;
@@ -538,17 +538,17 @@ static int acrd_op(struct acrd_handle *bh, struct acrd_tx *tx, enum OPERATION op
 		free(req);
 	} else {
 		if (need_sync)
-			aiocb = acrd_aio_setup(bh, NULL, NULL);
+			aiocb = acrd_aio_setup(ah, NULL, NULL);
 
-		__sync_add_and_fetch(&bh->nr_outstanding_reqs, 1);
-		__sync_add_and_fetch(&bh->allocated_data_size, req->rq->data_length);
+		__sync_add_and_fetch(&ah->nr_outstanding_reqs, 1);
+		__sync_add_and_fetch(&ah->allocated_data_size, req->rq->data_length);
 		req->aiocb = aiocb;
-		queue_work(bh->send_queue, &req->w_list);
+		queue_work(ah->send_queue, &req->w_list);
 
 		if (need_sync) {
-			acrd_aio_wait(bh, aiocb);
+			acrd_aio_wait(ah, aiocb);
 			ret = aiocb->result;
-			acrd_aio_release(bh, aiocb);
+			acrd_aio_release(ah, aiocb);
 		}
 	}
 
@@ -606,15 +606,15 @@ int acrd_tx_commit(struct acrd_tx *tx, uint32_t flags)
 {
 	struct acrd_aiocb *aiocb;
 	int ret;
-	struct acrd_handle *bh = tx->handle;
+	struct acrd_handle *ah = tx->handle;
 
-	aiocb = acrd_aio_setup(bh, NULL, NULL);
+	aiocb = acrd_aio_setup(ah, NULL, NULL);
 
 	ret = acrd_tx_aio_commit(tx, flags, aiocb);
 
-	acrd_aio_wait(bh, aiocb);
+	acrd_aio_wait(ah, aiocb);
 	ret = aiocb->result;
-	acrd_aio_release(bh, aiocb);
+	acrd_aio_release(ah, aiocb);
 
 	return ret;
 }
@@ -623,22 +623,22 @@ int acrd_tx_commit(struct acrd_tx *tx, uint32_t flags)
 int acrd_tx_aio_commit(struct acrd_tx *tx, uint32_t flags, struct acrd_aiocb *aiocb)
 {
 	int ret = 0;
-	struct acrd_handle *bh = tx->handle;
+	struct acrd_handle *ah = tx->handle;
 
 	set_request_info(tx->req->rq, ACRD_OP_TX, flags);
 
-	__sync_add_and_fetch(&bh->nr_outstanding_reqs, 1);
-	__sync_add_and_fetch(&bh->allocated_data_size, tx->req->rq->data_length);
+	__sync_add_and_fetch(&ah->nr_outstanding_reqs, 1);
+	__sync_add_and_fetch(&ah->allocated_data_size, tx->req->rq->data_length);
 	tx->req->aiocb = aiocb;
-	queue_work(bh->send_queue, &tx->req->w_list);
+	queue_work(ah->send_queue, &tx->req->w_list);
 
 	return ret;
 }
 
-int acrd_write(struct acrd_handle *bh, const char *path, const void *data,
+int acrd_write(struct acrd_handle *ah, const char *path, const void *data,
 	      uint32_t count, uint64_t offset, uint32_t flags)
 {
-	return acrd_op(bh, NULL, ACRD_OP_WRITE, path, strlen(path) + 1, data, count,
+	return acrd_op(ah, NULL, ACRD_OP_WRITE, path, strlen(path) + 1, data, count,
 		      count, offset, flags, NULL, NULL, NULL);
 }
 
@@ -657,7 +657,7 @@ static void acrd_read_cb(struct acrd_handle *h, struct acrd_rsp *rsp,
 	free(info);
 }
 
-int acrd_read(struct acrd_handle *bh, const char *path, void *data,
+int acrd_read(struct acrd_handle *ah, const char *path, void *data,
 	     uint32_t *count, uint64_t offset, uint32_t flags)
 {
 	struct acrd_read_info *info;
@@ -666,20 +666,20 @@ int acrd_read(struct acrd_handle *bh, const char *path, void *data,
 	info->size = count;
 	info->buf = data;
 
-	return acrd_op(bh, NULL, ACRD_OP_READ, path, strlen(path) + 1, NULL, 0,
+	return acrd_op(ah, NULL, ACRD_OP_READ, path, strlen(path) + 1, NULL, 0,
 		      *count, offset, flags, acrd_read_cb, info, NULL);
 }
 
-int acrd_del(struct acrd_handle *bh, const char *path, uint32_t flags)
+int acrd_del(struct acrd_handle *ah, const char *path, uint32_t flags)
 {
-	return acrd_op(bh, NULL, ACRD_OP_DEL, path, strlen(path) + 1, NULL, 0,
+	return acrd_op(ah, NULL, ACRD_OP_DEL, path, strlen(path) + 1, NULL, 0,
 		      0, 0, flags, NULL, NULL, NULL);
 }
 
-int acrd_copy(struct acrd_handle *bh, const char *src, const char *dst,
+int acrd_copy(struct acrd_handle *ah, const char *src, const char *dst,
 	     uint32_t flags)
 {
-	return acrd_op(bh, NULL, ACRD_OP_COPY, src, strlen(src) + 1, dst,
+	return acrd_op(ah, NULL, ACRD_OP_COPY, src, strlen(src) + 1, dst,
 		      strlen(dst) + 1, 0, 0, flags, NULL, NULL, NULL);
 }
 
@@ -704,7 +704,7 @@ static void acrd_list_cb(struct acrd_handle *h, struct acrd_rsp *rsp,
 	}
 }
 
-int acrd_list(struct acrd_handle *bh, const char *prefix, uint32_t flags,
+int acrd_list(struct acrd_handle *ah, const char *prefix, uint32_t flags,
 	     struct acrd_listcb *listcb)
 {
 	int len = 0;
@@ -712,7 +712,7 @@ int acrd_list(struct acrd_handle *bh, const char *prefix, uint32_t flags,
 	if (prefix)
 		len = strlen(prefix) + 1;
 
-	return acrd_op(bh, NULL, ACRD_OP_LIST, prefix, len, NULL, 0, 0, 0, flags,
+	return acrd_op(ah, NULL, ACRD_OP_LIST, prefix, len, NULL, 0, 0, 0, flags,
 		      acrd_list_cb, listcb, NULL);
 }
 
@@ -759,15 +759,15 @@ void acrd_aio_flush(struct acrd_handle *h)
 	pthread_mutex_unlock(&h->sync_lock);
 }
 
-int acrd_aio_write(struct acrd_handle *bh, const char *path, const void *data,
+int acrd_aio_write(struct acrd_handle *ah, const char *path, const void *data,
 		  uint32_t count, uint64_t offset, uint32_t flags,
 		  struct acrd_aiocb *aiocb)
 {
-	return acrd_op(bh, NULL, ACRD_OP_WRITE, path, strlen(path) + 1, data, count,
+	return acrd_op(ah, NULL, ACRD_OP_WRITE, path, strlen(path) + 1, data, count,
 		      count, offset, flags, NULL, NULL, aiocb);
 }
 
-int acrd_aio_read(struct acrd_handle *bh, const char *path, void *data,
+int acrd_aio_read(struct acrd_handle *ah, const char *path, void *data,
 		 uint32_t *count, uint64_t offset, uint32_t flags,
 		 struct acrd_aiocb *aiocb)
 {
@@ -777,25 +777,25 @@ int acrd_aio_read(struct acrd_handle *bh, const char *path, void *data,
 	info->size = count;
 	info->buf = data;
 
-	return acrd_op(bh, NULL, ACRD_OP_READ, path, strlen(path) + 1, NULL, 0,
+	return acrd_op(ah, NULL, ACRD_OP_READ, path, strlen(path) + 1, NULL, 0,
 		      *count, offset, flags, acrd_read_cb, info, aiocb);
 }
 
-int acrd_aio_del(struct acrd_handle *bh, const char *path, uint32_t flags,
+int acrd_aio_del(struct acrd_handle *ah, const char *path, uint32_t flags,
 		struct acrd_aiocb *aiocb)
 {
-	return acrd_op(bh, NULL, ACRD_OP_DEL, path, strlen(path) + 1, NULL, 0,
+	return acrd_op(ah, NULL, ACRD_OP_DEL, path, strlen(path) + 1, NULL, 0,
 		      0, 0, flags, NULL, NULL, aiocb);
 }
 
-int acrd_aio_copy(struct acrd_handle *bh, const char *src, const char *dst,
+int acrd_aio_copy(struct acrd_handle *ah, const char *src, const char *dst,
 		 uint32_t flags, struct acrd_aiocb *aiocb)
 {
-	return acrd_op(bh, NULL, ACRD_OP_COPY, src, strlen(src) + 1, dst,
+	return acrd_op(ah, NULL, ACRD_OP_COPY, src, strlen(src) + 1, dst,
 		      strlen(dst) + 1, 0, 0, flags, NULL, NULL, aiocb);
 }
 
-int acrd_aio_list(struct acrd_handle *bh, const char *prefix, uint32_t flags,
+int acrd_aio_list(struct acrd_handle *ah, const char *prefix, uint32_t flags,
 		 struct acrd_listcb *listcb, struct acrd_aiocb *aiocb)
 {
 	int len = 0;
@@ -803,7 +803,7 @@ int acrd_aio_list(struct acrd_handle *bh, const char *prefix, uint32_t flags,
 	if (prefix)
 		len = strlen(prefix) + 1;
 
-	return acrd_op(bh, NULL, ACRD_OP_LIST, prefix, len, NULL, 0, 0, 0, flags,
+	return acrd_op(ah, NULL, ACRD_OP_LIST, prefix, len, NULL, 0, 0, 0, flags,
 		      acrd_list_cb, listcb, aiocb);
 }
 

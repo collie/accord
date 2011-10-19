@@ -10,7 +10,7 @@ struct acrd_tx;
 struct acrd_watch_info;
 struct acrd_aiocb;
 
-typedef void (*acrd_watch_cb_t)(struct acrd_handle *bh,
+typedef void (*acrd_watch_cb_t)(struct acrd_handle *ah,
 			       struct acrd_watch_info *info, void *arg);
 
 
@@ -27,16 +27,16 @@ typedef void (*acrd_watch_cb_t)(struct acrd_handle *bh,
  * 'arg' 			An argument pointer which is set when acrd_init() is called.
  *				return value is handler to call the other Accord APIs.
  */
-typedef void (*acrd_confchg_cb_t)(struct acrd_handle *bh,
+typedef void (*acrd_confchg_cb_t)(struct acrd_handle *ah,
 				 const uint64_t *member_list,
 				 size_t member_list_entries, uint64_t nodeid,
 				 void *arg);
 
 
 
-typedef void (*acrd_aio_cb_t)(struct acrd_handle *bh, struct acrd_aiocb *aiocb,
+typedef void (*acrd_aio_cb_t)(struct acrd_handle *ah, struct acrd_aiocb *aiocb,
 			     void *arg);
-typedef void (*acrd_list_cb_t)(struct acrd_handle *bh, const char *path,
+typedef void (*acrd_list_cb_t)(struct acrd_handle *ah, const char *path,
 			      void *arg);
 
 struct acrd_watch_info {
