@@ -1,29 +1,17 @@
 * Server-side TODO list
 --------
-- デバッグメッセージの整理．
+- Dynamic server adding.
 
 * Client-side TODO list
 --------
-- キュー．簡易 libamqp (put/get) の実装
-- put/get/del/tx のベンチマークツールの実装.複数サーバへのアクセスもできるとなお良い．
+- Implementing Distributed Queue.
+-- Provides DB log manager API.
+- More benchmark.
+- Buffer management at callback threads.
+-- This is for supporting ZooKeeper API.
+- ZooKeeper API support.
+-- Project is launched at : https://github.com/oza/zkproxy
 
 * General TODO items
 --------
-- メーリングリストへアナウンスする文章の作成
-- Web サイトの作成
-- メール投稿先の検討
-- Badger メーリングリスト作成
-- git repository の作成
-
-* 後でやるリスト
---------
-+ メモリリークのチェック
-+ エラー処理の分類とハンドリング．
--- ネットワーク障害
--- サーバの障害
--- クライアントの障害(タイムアウト)
--- BDB のエラー
--- 予期せぬエラー
-+ 分散ロガーの実装
-- TCP_KEEPALIVE のデバッグ．
-- 動的なノードの追加．
+- Write documentation on github.
