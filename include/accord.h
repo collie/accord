@@ -2,7 +2,6 @@
 #define __ACCORD_H__
 
 #include "proto.h"
-#include "net.h"
 
 struct acrd_handle;
 struct acrd_tx;
