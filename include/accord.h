@@ -2,7 +2,6 @@
 #define __ACCORD_H__
 
 #include "proto.h"
-#include "list.h"
 #include "net.h"
 
 struct acrd_handle;
@@ -50,8 +49,6 @@ struct acrd_watch_info {
 	acrd_watch_cb_t cb;
 	uint32_t id;
 	uint32_t mask;
-
-	struct list_head list;
 };
 
 struct acrd_aiocb {

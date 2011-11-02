@@ -14,6 +14,7 @@
 
 #include "accord.h"
 #include "util.h"
+#include "list.h"
 
 struct acrd_fixture {
 	struct acrd_handle *handle;

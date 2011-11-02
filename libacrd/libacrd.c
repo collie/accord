@@ -113,6 +113,12 @@ struct acrd_tx {
 	struct acrd_read_info *read_info;
 };
 
+struct acrd_watch {
+	struct acrd_watch_info info;
+
+	struct list_head list;
+};
+
 static void set_request_info(struct acrd_req *req, int opcode, uint32_t flags)
 {
 	req->type = ACRD_MSG_REQUEST;
@@ -262,6 +268,7 @@ static int acrd_aio_completion(struct acrd_handle *ah, struct acrd_rsp *rsp)
 
 static int acrd_ntfy_completion(struct acrd_handle *ah, struct acrd_ntfy *ntfy)
 {
+	struct acrd_watch *w;
 	struct acrd_watch_info *wi;
 	const struct acrd_arg *id_arg, *list_arg;
 	const struct acrd_arg *path_arg, *data_arg;
@@ -292,7 +299,8 @@ static int acrd_ntfy_completion(struct acrd_handle *ah, struct acrd_ntfy *ntfy)
 				     nodeid, ah->ctx);
 		break;
 	default:
-		list_for_each_entry(wi, &ah->watch_list, list) {
+		list_for_each_entry(w, &ah->watch_list, list) {
+			wi = &w->info;
 			if (wi->id == ntfy->id)  {
 				wi->path = path_arg->data;
 				wi->events = ntfy->events;
@@ -824,13 +832,15 @@ struct acrd_watch_info *acrd_add_watch(struct acrd_handle *h, const char *path,
 				     uint32_t mask, acrd_watch_cb_t cb, void *arg)
 {
 	int ret;
+	struct acrd_watch *w;
 	struct acrd_watch_info *wi;
 
-	wi = zalloc(sizeof(*wi));
-	if (unlikely(!wi)) {
+	w = zalloc(sizeof(*w));
+	if (unlikely(!w)) {
 		eprintf("oom\n");
 		return NULL;
 	}
+	wi = &w->info;
 	wi->handle = h;
 	wi->cb = cb;
 	wi->mask = mask;
@@ -842,19 +852,20 @@ struct acrd_watch_info *acrd_add_watch(struct acrd_handle *h, const char *path,
 		free(wi);
 		return NULL;
 	}
-	list_add(&wi->list, &h->watch_list);
+	list_add(&w->list, &h->watch_list);
 
 	return wi;
 }
 
 int acrd_rm_watch(struct acrd_handle *h, struct acrd_watch_info *wi)
 {
+	struct acrd_watch *w = container_of(wi, struct acrd_watch, info);
 	int ret;
 
 	ret = acrd_op(h, NULL, ACRD_OP_RM_WATCH, &wi->id, sizeof(wi->id),
 		     NULL, 0, 0, 0, 0, NULL, NULL, NULL);
 	if (ret == ACRD_SUCCESS)
-		list_del(&wi->list);
+		list_del(&w->list);
 
 	return ret;
 }
