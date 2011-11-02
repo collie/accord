@@ -1,0 +1,11 @@
+prefix=@PREFIX@
+exec_prefix=${prefix}
+libdir=@LIBDIR@
+includedir=${prefix}/include
+
+Name: libacrd
+Version: @VERSION@
+Description: libacrd
+Requires:
+Libs: -L${libdir} -lacrd
+Cflags: -I${includedir}

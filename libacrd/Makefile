@@ -8,6 +8,8 @@ LIBACRD_OBJS = libacrd.o ../lib/net.o ../lib/work.o ../lib/coroutine.o
 LIBACRD_DEP = $(LIBACRD_OBJS:.o=.d)
 LIBACRD_VERSION = libacrd.map
 
+PCFILES = libacrd.pc
+
 ARFLAGS = cru
 RANLIB = ranlib
 
@@ -21,6 +23,16 @@ libacrd.a: $(LIBACRD_OBJS)
 libacrd.so: $(LIBACRD_OBJS)
 	$(CC) -shared $^ -o $@ -Wl,-version-script=$(LIBACRD_VERSION)
 
+libacrd.pc: libacrd.pc.in Makefile
+	rm -f $@-t $@
+	sed \
+		-e 's#@''PREFIX@#$(PREFIX)#g' \
+		-e 's#@''LIBDIR@#$(libdir)#g' \
+		-e 's#@''VERSION@#$(VERSION)#g' \
+	    $< > $@-t
+	chmod a-w $@-t
+	mv $@-t $@
+
 -include $(LIBACRD_DEP)
 
 %.o: %.c
@@ -31,12 +43,14 @@ libacrd.so: $(LIBACRD_OBJS)
 clean:
 	echo $(ARFLAGS)
 	echo $(RANLIB)
-	rm -f *.[od] $(LIBRARIES)
+	rm -f *.[od] $(LIBRARIES) $(PCFILES)
 
 .PHONY:install
-install: $(LIBRARIES)
+install: $(LIBRARIES) $(PCFILES)
 	install -d -m 755 $(DESTDIR)$(libdir)
 	install -m 644 $(LIBRARIES) $(DESTDIR)$(libdir)
+	install -d -m 755 $(DESTDIR)$(libdir)/pkgconfig
+	install -m 644 $(PCFILES) $(DESTDIR)$(libdir)/pkgconfig
 
 # support for GNU Flymake
 check-syntax:

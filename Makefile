@@ -1,6 +1,8 @@
+VERSION ?= 0.0.1
+
 PREFIX ?= /usr
 
-export PREFIX
+export VERSION PREFIX
 
 .PHONY:all
 all:
