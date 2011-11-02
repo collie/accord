@@ -27,7 +27,7 @@
 #include <sys/socket.h>
 #include <coroutine.h>
 
-#include "proto.h"
+#include "accord_proto.h"
 #include "util.h"
 #include "event.h"
 #include "net.h"

@@ -1,7 +1,7 @@
 #ifndef __ACCORD_H__
 #define __ACCORD_H__
 
-#include "proto.h"
+#include <accord_proto.h>
 
 struct acrd_handle;
 struct acrd_tx;

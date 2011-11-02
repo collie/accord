@@ -2,7 +2,7 @@
 #define __NET_H__
 
 #include <sys/socket.h>
-#include "proto.h"
+#include "accord_proto.h"
 
 struct co_buffer {
 	int offset;

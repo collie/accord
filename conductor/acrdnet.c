@@ -19,7 +19,7 @@
 #include <assert.h>
 #include <errno.h>
 
-#include "proto.h"
+#include "accord_proto.h"
 #include "list.h"
 #include "work.h"
 #include "logger.h"

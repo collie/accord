@@ -1,5 +1,5 @@
-#ifndef __PROTO_H__
-#define __PROTO_H__
+#ifndef __ACCORD_PROTO_H__
+#define __ACCORD_PROTO_H__
 
 #include "stdint.h"
 #include "util.h"
@@ -244,4 +244,4 @@ static inline void *append_arg(void *p, const void *data, uint32_t data_len)
 	return hdr;
 }
 
-#endif /* __PROTO_H__ */
+#endif /* __ACCORD_PROTO_H__ */

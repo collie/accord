@@ -13,7 +13,7 @@
 #include <corosync/cpg.h>
 
 #include "store.h"
-#include "proto.h"
+#include "accord_proto.h"
 #include "logger.h"
 #include "util.h"
 #include "acrd_priv.h"
