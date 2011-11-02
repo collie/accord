@@ -1,3 +1,7 @@
+PREFIX ?= /usr
+
+export PREFIX
+
 .PHONY:all
 all:
 	$(MAKE) -C libacrd
@@ -10,6 +14,12 @@ clean:
 	$(MAKE) -C conductor clean
 	$(MAKE) -C test clean
 	$(MAKE) -C lib clean
+
+.PHONY:install
+install:
+	$(MAKE) -C libacrd install
+	$(MAKE) -C conductor install
+	$(MAKE) -C include install
 
 .PHONY:test
 test:

@@ -1,3 +1,5 @@
+sbindir ?= $(PREFIX)/sbin
+
 CFLAGS += -g -O3 -Wall -Wstrict-prototypes -I../include
 CFLAGS += -D_GNU_SOURCE -DNDEBUG
 LIBS += -lpthread -ldb -lcpg
@@ -22,6 +24,11 @@ conductor: $(ACCORD_OBJS)
 .PHONY:clean
 clean:
 	rm -f *.[od] $(PROGRAMS)
+
+.PHONY:install
+install: $(PROGRAMS)
+	install -d -m 755 $(DESTDIR)$(sbindir)
+	install -m 755 $(PROGRAMS) $(DESTDIR)$(sbindir)
 
 # support for GNU Flymake
 check-syntax:

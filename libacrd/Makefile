@@ -1,3 +1,5 @@
+libdir ?= $(PREFIX)/lib
+
 CFLAGS += -g -O3 -Wall -Wstrict-prototypes -I../include
 CFLAGS += -D_GNU_SOURCE -DNDEBUG -fPIC
 
@@ -30,6 +32,11 @@ clean:
 	echo $(ARFLAGS)
 	echo $(RANLIB)
 	rm -f *.[od] $(LIBRARIES)
+
+.PHONY:install
+install: $(LIBRARIES)
+	install -d -m 755 $(DESTDIR)$(libdir)
+	install -m 644 $(LIBRARIES) $(DESTDIR)$(libdir)
 
 # support for GNU Flymake
 check-syntax:
