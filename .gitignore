@@ -22,4 +22,4 @@ test/watch_nodes
 test/watch_files
 valgrind.log
 test/test-report.*ml
-
+libacrd/libacrd.pc
