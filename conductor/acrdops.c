@@ -155,6 +155,50 @@ static int exec_del_req(const struct acrd_req *req, struct acrd_rsp **rsp,
 	return ret;
 }
 
+static int exec_atomic_inc_req(const struct acrd_req *req, struct acrd_rsp **rsp,
+			struct acrd_txid *txid, struct client_info *from)
+{
+	int ret = 0;
+	void *data;
+	const void *adddata;
+	const char *path;
+	uint32_t size;
+	uint32_t d32, v;
+
+	path = get_arg(req, 0)->data;
+	adddata = get_arg(req, 1)->data;
+	size = get_arg(req, 1)->size;
+	dprintf("hogehoge %s %d\n", path, size);
+
+	if (size != sizeof(uint32_t))
+		goto err;
+
+	if (likely(path))
+		ret = store_read(path, &data, &size, req->offset, txid);
+	else
+		ret = ACRD_ERR_UNKNOWN;
+
+	if (ret != ACRD_SUCCESS)
+		goto err;
+
+	if (size != sizeof(uint32_t))
+		goto err;
+
+	v = *(uint32_t *) adddata;
+	d32 = *(uint32_t *)data;
+	d32 += v;
+	ret = store_write(path, &d32, size, req->offset, req->flags, txid);
+
+	if (rsp)
+		(*rsp)->result = ret;
+
+	return ret;
+err:
+	if (rsp)
+		(*rsp)->result = ret;
+	return ret;
+}
+
 static int exec_cmp_req(const struct acrd_req *req, struct acrd_rsp **rsp,
 			struct acrd_txid *txid, struct client_info *from)
 {
@@ -535,6 +579,10 @@ static struct acrd_op_tmpl acrd_ops[] = {
 		.need_mcast = 1,
 		.exec_req = exec_copy_req,
 		.notify_event = notify_copy_event,
+	}, {
+		.opcode = ACRD_OP_ATOMIC_INC,
+		.need_mcast = 1,
+		.exec_req = exec_atomic_inc_req,
 	}, {
 		.opcode = ACRD_OP_TX,
 		.need_mcast = 1,

@@ -610,6 +610,13 @@ int acrd_tx_copy(struct acrd_tx *tx, const char *src, const char *dst,
 		      strlen(dst) + 1, 0, 0, flags, NULL, NULL, NULL);
 }
 
+int acrd_tx_atomic_inc(struct acrd_tx *tx, const char *path, const void *buf,
+	       uint32_t count, uint32_t offset, uint32_t flags)
+{
+	return acrd_op(tx->handle, tx, ACRD_OP_ATOMIC_INC, path, strlen(path) + 1, buf,
+		      count, 0, offset, flags, NULL, NULL, NULL);
+}
+
 int acrd_tx_commit(struct acrd_tx *tx, uint32_t flags)
 {
 	struct acrd_aiocb *aiocb;

@@ -24,6 +24,7 @@
 		acrd_tx_cmp;
 		acrd_tx_scmp;
 		acrd_tx_copy;
+		acrd_tx_atomic_inc;
 		acrd_tx_commit;
 		acrd_tx_aio_commit;
 		acrd_add_watch;

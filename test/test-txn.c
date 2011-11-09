@@ -281,6 +281,43 @@ static void test_txn_increment(struct acrd_fixture *fixture, gconstpointer p)
 	acrd_tx_close(tx);
 }
 
+static void test_txn_ainc(struct acrd_fixture *fixture, gconstpointer p)
+{
+	struct acrd_handle *h = fixture->handle;
+	uint32_t data = 5555;
+	uint32_t newdata = 5556;
+	uint32_t *readdata;
+	uint32_t delta = 1;
+	char retdata[32];
+	uint32_t retdata_len = sizeof(data);
+	int ret;
+	struct acrd_tx *tx;
+
+	tx = acrd_tx_init(h);
+	g_assert(tx != NULL);
+	ret = acrd_tx_atomic_inc(tx, "/tmp/0", &delta, sizeof(uint32_t), 0, 0);
+	g_assert(ret == ACRD_SUCCESS);
+	ret = acrd_tx_commit(tx, 0);
+	g_assert(ret == ACRD_ERR_NOTFOUND);
+	acrd_tx_close(tx);
+
+	ret = acrd_write(h, "/tmp/0", &data, sizeof(uint32_t), 0, ACRD_FLAG_CREATE);
+	g_assert(ret == ACRD_SUCCESS);
+
+	tx = acrd_tx_init(h);
+	g_assert(tx != NULL);
+	ret = acrd_tx_atomic_inc(tx, "/tmp/0", &delta, sizeof(uint32_t), 0, 0);
+	g_assert(ret == ACRD_SUCCESS);
+	ret = acrd_tx_commit(tx, 0);
+	g_assert(ret == ACRD_SUCCESS);
+	acrd_tx_close(tx);
+
+	ret = acrd_read(h, "/tmp/0", &retdata, &retdata_len, 0, ACRD_FLAG_CREATE);
+	g_assert(ret == ACRD_SUCCESS);
+	readdata = (uint32_t *)retdata;
+	g_assert(*readdata == newdata);
+}
+
 static void test_txn_merge(struct acrd_fixture *fixture, gconstpointer p)
 {
 	struct acrd_handle *h = fixture->handle;
@@ -406,6 +443,8 @@ int main(int argc, char **argv)
 		   test_txn_setup, test_txn_merge, test_txn_teardown);
 	g_test_add("/txn/swap", struct acrd_fixture, NULL,
 		   test_txn_setup, test_txn_swap, test_txn_teardown);
+	g_test_add("/txn/ainc", struct acrd_fixture, NULL,
+		   test_txn_setup, test_txn_ainc, test_txn_teardown);
 
 	return g_test_run();
 }

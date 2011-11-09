@@ -375,6 +375,9 @@ int acrd_tx_scmp(struct acrd_tx *tx, const char *path1, const char *path2,
 int acrd_tx_copy(struct acrd_tx *tx, const char *src, const char *dst,
 		uint32_t flags);
 
+int acrd_tx_atomic_inc(struct acrd_tx *tx, const char *path, const void *buf,
+	       uint32_t count, uint32_t offset, uint32_t flags);
+
 /**
  * Commit a transaction
  *
