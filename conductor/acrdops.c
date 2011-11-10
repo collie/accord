@@ -168,7 +168,6 @@ static int exec_atomic_inc_req(const struct acrd_req *req, struct acrd_rsp **rsp
 	path = get_arg(req, 0)->data;
 	adddata = get_arg(req, 1)->data;
 	size = get_arg(req, 1)->size;
-	dprintf("hogehoge %s %d\n", path, size);
 
 	if (size != sizeof(uint32_t))
 		goto err;

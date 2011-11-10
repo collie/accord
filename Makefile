@@ -9,12 +9,14 @@ all:
 	$(MAKE) -C libacrd
 	$(MAKE) -C conductor
 	$(MAKE) -C test
+	$(MAKE) -C apps
 
 .PHONY:clean
 clean:
 	$(MAKE) -C libacrd clean
 	$(MAKE) -C conductor clean
 	$(MAKE) -C test clean
+	$(MAKE) -C apps clean
 	$(MAKE) -C lib clean
 
 .PHONY:install
@@ -22,6 +24,10 @@ install:
 	$(MAKE) -C libacrd install
 	$(MAKE) -C conductor install
 	$(MAKE) -C include install
+
+.PHONY:apps
+apps:
+	$(MAKE) -C apps
 
 .PHONY:test
 test:
