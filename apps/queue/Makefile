@@ -2,7 +2,7 @@ sbindir ?= $(PREFIX)/sbin
 
 CFLAGS += -g -O3 -Wall -Wstrict-prototypes -I../../include
 CFLAGS += -D_GNU_SOURCE -DNDEBUG
-LIBS += -lpthread -lacrd
+LIBS += -L../../libacrd -lpthread -lacrd
 
 PROGRAMS = qbench
 QUEUE_OBJS = queue.o
@@ -12,7 +12,7 @@ QUEUE_DEP = $(ACCORD_OBJS:.o=.d)
 all: $(PROGRAMS)
 
 qbench: $(QUEUE_OBJS)
-	$(CC) $^ -o $@ $(LIBS)
+	$(CC) $(CFLAGS) $^ -o $@ $(LIBS)
 
 -include $(ACCORD_DEP)
 
