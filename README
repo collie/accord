@@ -1,5 +1,9 @@
 ** Accord project **
 
+NOTE: Now, this project is marked as deprecated, because we've observed that write-intensive
+workload is much less important than read-intensive workload for coordination service. 
+Please use ZooKeeper.
+
 * Overview
 ----------
 - Accord is a coordination service(like ZooKeeper). It features :
