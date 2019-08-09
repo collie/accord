@@ -821,8 +821,37 @@ int init_cpg(struct cpg_name *group_name)
 
 	result = cpg_initialize(&cpg_handle, &cb);
 	if (result != CS_OK) {
-		eprintf("Could not initialize Cluster Process Group API"
-			"instance error %d\n", result);
+		eprintf("Could not initialize Cluster Process Group API:\n");
+
+		switch (result) {
+		case CS_ERR_TRY_AGAIN :
+		  eprintf ("Resource temporarily unavailable\n");
+		  break;
+		case CS_ERR_INVALID_PARAM :
+		  eprintf ("Invalid argument\n");
+		  break;
+		case CS_ERR_ACCESS :
+		  eprintf ("Permission denied\n");
+		  break;
+		case CS_ERR_LIBRARY :
+		  eprintf ("The connection failed\n");
+		  break;
+		case CS_ERR_INTERRUPT :
+		  eprintf ("System call inturrupted by a signal\n");
+		  break;
+		case CS_ERR_NOT_SUPPORTED :
+		  eprintf ("The requested protocol/functuality not supported\n");
+		  break;
+		case CS_ERR_MESSAGE_ERROR :
+		  eprintf ("Incorrect auth message received\n");
+		  break;
+		case CS_ERR_NO_MEMORY :
+		  eprintf ("Not enough memory to completed the requested task\n");
+		  break;
+		default :
+		  eprintf ("Unknown error %d\n", result);
+		}
+
 		return -1;
 	}
 
